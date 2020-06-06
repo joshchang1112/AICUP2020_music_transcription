@@ -37,7 +37,7 @@ def preprocess(data_seq, label):
 
     return new_label
 
-# Traib data
+# Preprocess Train data
 THE_FOLDER = "./MIR-ST500"
 #THE_FOLDER = "./AIcup_testset_ok"
 data_seq= []
@@ -72,19 +72,16 @@ for the_dir in a:
     frame_num.append(len(data))
     label.append(gtdata)
 
-# np_data = preprocessing.scale(data_seq)
-# data_seq = []
-# start = 0
-# for idx in frame_num:
-#     data_seq.append(np_data[start:start+idx, :])
-#     start+=idx
+#train data standardlization
+scaler = preprocessing.StandardScaler()
+scaler.fit(data_seq)
 
-#print(np_data.shape)
-
-# Preprocess test data only
-# scaler = preprocessing.StandardScaler()
-# scaler.fit(data_seq)
-# print(scaler.mean_)
+np_data = preprocessing.scale(data_seq)
+data_seq = []
+start = 0
+for idx in frame_num:
+    data_seq.append(np_data[start:start+idx, :])
+    start+=idx
 
 groundtruth = copy.deepcopy(label)
 
@@ -97,45 +94,44 @@ label= preprocess(data_seq, label)
 train_data = MyData(data_seq, label, groundtruth)
 #test_data = MyData(data_seq)
 with open("feature_pickle.pkl", 'wb') as pkl_file:
-#with open("test.pkl", 'wb') as pkl_file:
     pickle.dump(train_data, pkl_file)
 
 # Preprocess Test data
-# THE_FOLDER = "./AIcup_testset_ok"
-# data_seq= []
-# frame_num = []
-# label= []
-# a = os.listdir(THE_FOLDER)
-# a.sort(key= lambda x: int(x))
-# for the_dir in a:
-#     print (the_dir)
-#     if not os.path.isdir(THE_FOLDER + "/" + the_dir):
-#         continue
+THE_FOLDER = "./AIcup_testset_ok"
+data_seq= []
+frame_num = []
+label= []
+a = os.listdir(THE_FOLDER)
+a.sort(key= lambda x: int(x))
+for the_dir in a:
+    print (the_dir)
+    if not os.path.isdir(THE_FOLDER + "/" + the_dir):
+        continue
 
-#     json_path = THE_FOLDER + "/" + the_dir+ f"/{the_dir}_feature.json"
+    json_path = THE_FOLDER + "/" + the_dir+ f"/{the_dir}_feature.json"
 
-#     youtube_link_path= THE_FOLDER+ "/" + the_dir+ "/"+ the_dir+ "_link.txt"
+    youtube_link_path= THE_FOLDER+ "/" + the_dir+ "/"+ the_dir+ "_link.txt"
 
-#     with open(json_path, 'r') as json_file:
-#         temp = json.loads(json_file.read())
+    with open(json_path, 'r') as json_file:
+        temp = json.loads(json_file.read())
 
-#     data = []
-#     for key, value in temp.items():
-#         data.append(value)
+    data = []
+    for key, value in temp.items():
+        data.append(value)
 
-#     data = np.array(data).T
-#     #print(data.shape)
-#     #data = preprocessing.scale(data)
-#     data_seq.extend(data)
-#     frame_num.append(len(data))
+    data = np.array(data).T
+    #print(data.shape)
+    #data = preprocessing.scale(data)
+    data_seq.extend(data)
+    frame_num.append(len(data))
 
-# data = scaler.transform(data_seq)
-# data_seq = []
-# start = 0
-# for idx in frame_num:
-#     data_seq.append(data[start:start+idx, :])
-#     start+=idx
+data = scaler.transform(data_seq)
+data_seq = []
+start = 0
+for idx in frame_num:
+    data_seq.append(data[start:start+idx, :])
+    start+=idx
 
-# test_data = MyData(data_seq)
-# with open("test.pkl", 'wb') as pkl_file:
-#     pickle.dump(test_data, pkl_file)
+test_data = MyData(data_seq)
+with open("test.pkl", 'wb') as pkl_file:
+    pickle.dump(test_data, pkl_file)
