@@ -13,26 +13,26 @@ def preprocess(data_seq, label):
         cur_note= 0
         cur_note_onset= label[i][cur_note][0]
         cur_note_offset= label[i][cur_note][1]
-        cur_note_pitch= 2**((label[i][cur_note][2]-69)/12) * 440
+        #cur_note_pitch= 2**((label[i][cur_note][2]-69)/12) * 440
 
         for j in range(len(data_seq[i])):
             cur_time= j* 0.032+ 0.016
         
             if abs(cur_time - cur_note_onset) < 0.017:
-                label_of_one_song.append(np.array([1, 0, cur_note_pitch]))
+                label_of_one_song.append(np.array([1, 0]))
 
             elif cur_time < cur_note_onset or cur_note >= len(label[i]):
-                label_of_one_song.append(np.array([0, 0, 0]))
+                label_of_one_song.append(np.array([0, 0]))
 
             elif abs(cur_time - cur_note_offset) < 0.017:
-                label_of_one_song.append(np.array([0, 1, cur_note_pitch]))
+                label_of_one_song.append(np.array([0, 1]))
                 cur_note= cur_note+ 1
                 if cur_note < len(label[i]):
                     cur_note_onset = label[i][cur_note][0]
                     cur_note_offset = label[i][cur_note][1]
-                    cur_note_pitch = 2**((label[i][cur_note][2]-69)/12) * 440
+                    #cur_note_pitch = 2**((label[i][cur_note][2]-69)/12) * 440
             else:
-                label_of_one_song.append(np.array([0, 0, cur_note_pitch]))
+                label_of_one_song.append(np.array([0, 0]))
         new_label.append(label_of_one_song)
 
     return new_label
@@ -43,6 +43,7 @@ THE_FOLDER = "./MIR-ST500"
 data_seq= []
 frame_num = []
 label= []
+vocal_pitch = []
 a = os.listdir(THE_FOLDER)
 a.sort(key= lambda x: int(x))
 for the_dir in a:
@@ -71,6 +72,7 @@ for the_dir in a:
     data_seq.extend(data)
     frame_num.append(len(data))
     label.append(gtdata)
+    vocal_pitch.append(data[:, 22])
 
 #train data standardlization
 scaler = preprocessing.StandardScaler()
@@ -91,16 +93,18 @@ for i in range(len(groundtruth)):
 
 
 label= preprocess(data_seq, label)
-train_data = MyData(data_seq, label, groundtruth)
+train_data = MyData(data_seq, label, groundtruth, vocal_pitch)
 #test_data = MyData(data_seq)
-with open("feature_pickle.pkl", 'wb') as pkl_file:
-    pickle.dump(train_data, pkl_file)
+#with open("feature_pickle.pkl", 'wb') as pkl_file:
+#    pickle.dump(train_data, pkl_file)
+
 
 # Preprocess Test data
 THE_FOLDER = "./AIcup_testset_ok"
 data_seq= []
 frame_num = []
 label= []
+vocal_pitch = []
 a = os.listdir(THE_FOLDER)
 a.sort(key= lambda x: int(x))
 for the_dir in a:
@@ -124,14 +128,17 @@ for the_dir in a:
     #data = preprocessing.scale(data)
     data_seq.extend(data)
     frame_num.append(len(data))
+    vocal_pitch.append(data[:, 22])
 
-data = scaler.transform(data_seq)
+
+data_2 = scaler.transform(data_seq)
 data_seq = []
 start = 0
 for idx in frame_num:
-    data_seq.append(data[start:start+idx, :])
+    data_seq.append(data_2[start:start+idx, :])
     start+=idx
 
-test_data = MyData(data_seq)
+test_data = MyData(data_seq, vocal_pitch=vocal_pitch)
 with open("test.pkl", 'wb') as pkl_file:
     pickle.dump(test_data, pkl_file)
+

@@ -19,21 +19,19 @@ import copy
 from utils import post_processing
 
 def testing(net, test_loader, device):
-    net_1 = net[0]
-    net_2 = net[1]
-    net_1.eval()
-    net_2.eval()
+    
+    net.eval()
     predict = []
     for idx, sample in enumerate(test_loader):
         
         data = torch.Tensor(sample['data'])
         data_lens = sample['data_lens']
+        vocal_pitch = sample['vocal_pitch']
         data_length= list(data.shape)[0]
 
         data = data.to(device, dtype=torch.float)
-        output1 = net_1(data)
-        output2 = net_2(data)
-        answer = post_processing(output1, output2)
+        output = net(data)
+        answer = post_processing(output, vocal_pitch)
         predict.extend(answer)
         print(len(predict))
     

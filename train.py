@@ -8,40 +8,35 @@ from utils import post_processing
 
 def do_training(net, train_loader, val_loader, device):
 
-    num_epoch = 50
-    criterion_onset = nn.BCELoss()
-    criterion_pitch = nn.SmoothL1Loss()
+    num_epoch = 70
+    criterion_set = nn.BCELoss()
+    #criterion_pitch = nn.SmoothL1Loss()
     #criterion_pitch = nn.CrossEntropyLoss()
     train_loss= 0.0
     total_length= 0
     best_f1 = 0
+    best_val_loss = 100
 
-    net_1 = net[0]
-    optimizer_1 = optim.Adam(net_1.parameters(), lr= 4e-3)
-    scheduler_1 = optim.lr_scheduler.StepLR(optimizer_1, 50 * 5, 0.9)
+    optimizer = optim.Adam(net.parameters(), lr= 4e-3)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', factor=0.5, patience=5)
 
-    net_2 = net[1]
-    optimizer_2 = optim.Adam(net_2.parameters(), lr= 8e-3)
-    scheduler_2 = optim.lr_scheduler.StepLR(optimizer_2, 50 * 10, 0.5)
 
     for epoch in range(num_epoch):
         total_length= 0.0
         start_time = time.time()
         train_loss= 0.0
-        total_set_loss = 0.0
-        total_pitch_loss=0.0
+        total_onset_loss = 0.0
+        total_offset_loss=0.0
 
         COn = 0
         COnP = 0
         COnPOff = 0
         weighted_f1 = 0
         count = 0 
-        # for param_group in optimizer.param_groups:
-        #     print("lr: {}".format(param_group['lr']))
+        for param_group in optimizer.param_groups:
+             print("lr: {}".format(param_group['lr']))
 
-
-        net_1.train()
-        net_2.train()
+        net.train()
         for batch_idx, sample in enumerate(train_loader):
 
             # print(len(sample['label']))
@@ -50,34 +45,26 @@ def do_training(net, train_loader, val_loader, device):
             data = sample['data']
             target = sample['label']
             data_lens = sample['data_lens']
+            vocal_pitch = sample['vocal_pitch']
 
             data_length= list(data.shape)[0]
 
             data = data.to(device, dtype=torch.float)
             target = target.to(device, dtype=torch.float)
 
-            optimizer_1.zero_grad()
-            output1 = net_1(data)
-            set_loss = criterion_onset(output1, torch.narrow(target, dim= 2, start= 0, length= 2))
-            set_loss.backward()
-            optimizer_1.step()
-            scheduler_1.step()
-
-            optimizer_2.zero_grad()
-            output2 = net_2(data)
-            pitch_loss = criterion_pitch(output2, torch.narrow(target, dim= 2, start= 2, length= 1))
-            pitch_loss.backward()
-            optimizer_2.step()
-            scheduler_2.step()
+            optimizer.zero_grad()
+            output = net(data)
+           
+            loss = criterion_set(output, torch.narrow(target, dim= 2, start= 0, length= 2))
+            loss.backward()
+            optimizer.step()
             
-            total_set_loss += set_loss.item()
-            total_pitch_loss += pitch_loss.item()
-            train_loss += (set_loss.item() + pitch_loss.item())
+            train_loss += loss.item()
             total_length = total_length + 1
             
-            if epoch >= 10:
+            if epoch >= 30:
                 gt = np.array(sample['groundtruth'])
-                predict = post_processing(output1, output2)
+                predict = post_processing(output, vocal_pitch)
                 #predict = np.array(predict)          
 
                 for i in range(len(predict)):
@@ -95,42 +82,40 @@ def do_training(net, train_loader, val_loader, device):
             # if batch_idx % 50 == 0:
             #     print ("epoch %d, sample %d, loss %.6f" %(epoch, batch_idx, total_loss))
 
-        print('epoch %d, avg loss: %.6f, set loss: %.6f, pitch loss: %.6f, training time: %.3f sec' %(epoch, train_loss/ total_length, \
-            total_set_loss/ total_length, total_pitch_loss/ total_length, time.time()-start_time))
+        print('epoch %d, total loss: %.6f, training time: %.3f sec' %(epoch, train_loss/ total_length, time.time()-start_time))
         
-        if epoch >= 10:
+        if epoch >= 30:
             print ("epoch %d, COn %.6f, COnP %.6f, COnPOff %.6f, Training weighted_f1 %.6f" %(epoch, COn/ count, 
                 COnP/ count, COnPOff/ count, weighted_f1/ count))
 
         
         # evaluate
-        if epoch >= 10:
+        if epoch >= 30:
             val_total_loss = 0
             COn = 0
             COnP = 0
             COnPOff = 0
             weighted_f1 = 0
             count = 0
-            net_1.eval()
-            net_2.eval()
+            net.eval()
             for idx, sample in enumerate(val_loader):
-                val_loss= 0.0
                 data = torch.Tensor(sample['data'])
                 target = torch.Tensor(sample['label'])
                 data_lens = sample['data_lens']
-
+                vocal_pitch = sample['vocal_pitch']
+                
                 data_length= list(data.shape)[0]
 
                 data = data.to(device, dtype=torch.float)
                 target = target.to(device, dtype=torch.float)
 
-                output1 = net_1(data)
-                output2 = net_2(data)
+                output = net(data)
 
-                # total_loss = criterion_onset(output1, torch.narrow(target, dim= 2, start= 0, length= 2))
-                # total_loss = total_loss + criterion_pitch(output2, torch.narrow(target, dim= 2, start= 2, length= 1))
-                # val_loss += total_loss.item()
-                predict = post_processing(output1, output2)
+                set_loss = criterion_set(output, torch.narrow(target, dim= 2, start= 0, length= 2))
+
+                val_total_loss += set_loss.item()
+
+                predict = post_processing(output, vocal_pitch)
 
                 gt = np.array(sample['groundtruth'])
                 #predict = np.array(predict)          
@@ -146,14 +131,17 @@ def do_training(net, train_loader, val_loader, device):
                     COnPOff = COnPOff + score['F-measure']
                     weighted_f1 = COn * 0.2 + COnP * 0.6 + COnPOff * 0.2 
 
-        
-            if weighted_f1 / len(val_loader) > best_f1:
-                best_f1 = weighted_f1 / len(val_loader)
-                model_path= f'ST_{epoch}.pt'
-                torch.save(net_1.state_dict(), './model_1' + model_path)
-                torch.save(net_2.state_dict(), './model_2' + model_path)
-            if epoch >= 10:
-                print ("epoch %d, COn %.6f, COnP %.6f, COnPOff %.6f, Validation weighted_f1 %.6f" %(epoch, COn/ count,
-                 COnP/ count, COnPOff/ count, weighted_f1/ count))   
+            scheduler.step(weighted_f1)
 
-    return net_1, net_2
+            if weighted_f1 > best_f1:
+                best_f1 = weighted_f1
+                #model_path= f'ST_{epoch}.pt'
+                torch.save(net.state_dict(), './set_model.pkl')
+            
+            if epoch >= 30:
+                print('epoch %d, total val loss: %.6f ' %(epoch, val_total_loss/ total_length))
+
+                print ("epoch %d, COn %.6f, COnP %.6f, COnPOff %.6f, Validation weighted_f1 %.6f" %(epoch, COn/ count,
+                 COnP/ count, COnPOff/ count, weighted_f1/ count))
+
+    return net
