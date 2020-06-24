@@ -27,11 +27,12 @@ def testing(net, test_loader, device):
         data = torch.Tensor(sample['data'])
         data_lens = sample['data_lens']
         vocal_pitch = sample['vocal_pitch']
+        _range = sample['range']
         data_length= list(data.shape)[0]
 
         data = data.to(device, dtype=torch.float)
         output = net(data)
-        answer = post_processing(output, vocal_pitch)
+        answer = post_processing(output, vocal_pitch, _range)
         predict.extend(answer)
         print(len(predict))
     

@@ -6,10 +6,13 @@ with open("answer.json") as f:
 #print(result['1'])
 
 for key, value in result.items():
+    print(len(value))
     delete_idx = []
     for i in range(len(value)):
         if value[i][2] <= 0:
             delete_idx.append(i)
+        elif value[i][2] < 39:
+            value[i][2] *= 2
     
     #print(delete_idx)
     count = 0

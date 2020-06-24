@@ -13,51 +13,53 @@ import pickle
 # label= []
 
 # train_data= None
-'''
+
 # train
-with open("feature_pickle.pkl", 'rb') as pkl_file:
-    train_data= pickle.load(pkl_file)
+# with open("feature_pickle.pkl", 'rb') as pkl_file:
+#     train_data= pickle.load(pkl_file)
 
 
-BATCH_SIZE = 8
-train_num = 400
-train_size = train_num
-test_size = 500 - train_size
+# BATCH_SIZE = 8
+# train_num = 400
+# train_size = train_num
+# test_size = 500 - train_size
 
-input_dim = 23
-hidden_size = 128
+# input_dim = 28
+# hidden_size = 128
 
-set_seed(208)
-train_data, val_data = random_split(train_data, [train_size, test_size])
+# set_seed(208)
+# train_data, val_data = random_split(train_data, [train_size, test_size])
 
-train_loader = DataLoader(dataset=train_data, batch_size= BATCH_SIZE, shuffle=True, 
-    collate_fn=MyData.collate_fn)
-val_loader = DataLoader(dataset=val_data, batch_size= BATCH_SIZE, shuffle=False, 
-    collate_fn=MyData.collate_fn)
+# train_loader = DataLoader(dataset=train_data, batch_size= BATCH_SIZE, shuffle=True, 
+#     collate_fn=MyData.collate_fn)
+# val_loader = DataLoader(dataset=val_data, batch_size= BATCH_SIZE, shuffle=False, 
+#     collate_fn=MyData.collate_fn)
 
 
-model = LSTM_set(input_dim, hidden_size)
+# onset_model = LSTM_set(input_dim, hidden_size)
+# offset_model = LSTM_set(input_dim, hidden_size)
 
-# model_1.load_state_dict(torch.load("./model_1ST_45.pt"))
-# model_2.load_state_dict(torch.load("./model_2ST_45.pt"))
+# # model_1.load_state_dict(torch.load("./model_1ST_45.pt"))
+# # model_2.load_state_dict(torch.load("./model_2ST_45.pt"))
 
-device = 'cpu'
+# device = 'cpu'
 
-if torch.cuda.is_available():
-    device = 'cuda'
-else: 
-    device = 'cpu'
+# if torch.cuda.is_available():
+#     device = 'cuda'
+# else: 
+#     device = 'cpu'
 
-model = model.to(device)
-print("use",device,"now!")
+# onset_model = onset_model.to(device)
+# offset_model = offset_model.to(device)
+# print("use",device,"now!")
 
-model = do_training(model, train_loader, val_loader, device)
-'''
+# model = do_training(onset_model, offset_model, train_loader, val_loader, device)
+
 # test
 with open("test.pkl", 'rb') as pkl_file:
     test_data= pickle.load(pkl_file)
 
-input_dim = 23
+input_dim = 28
 hidden_size = 128
 BATCH_SIZE = 8
 
@@ -68,7 +70,7 @@ test_loader = DataLoader(dataset=test_data, batch_size= BATCH_SIZE, shuffle=Fals
 
 model = LSTM_set(input_dim, hidden_size)
 
-model.load_state_dict(torch.load("./set_model.pkl"))
+model.load_state_dict(torch.load("model/set_model.pkl"))
 
 device = 'cpu'
 
