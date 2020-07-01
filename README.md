@@ -23,6 +23,8 @@ Private Score:
 
 WILL BE ADDED LATER:)
 
+our report:
+
 ## Reproduce
 
 You can download our pretrained model and train/test feature pickle file to reproduct our results.
