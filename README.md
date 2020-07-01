@@ -23,7 +23,7 @@ Private Score:
 
 WILL BE ADDED LATER:)
 
-our report:
+You can see our report to get more detailed method:)
 
 ## Reproduce
 
